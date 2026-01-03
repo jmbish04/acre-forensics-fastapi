@@ -7,7 +7,7 @@ MOUNT_POINT="/mnt/evidence"
 
 # --- Defaults --- #
 export PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
-export PORT=${PORT:-3000}
+export PORT=${PORT:-8000}
 
 # Default Bucket Names if not set in Env
 export R2_EVIDENCE_BUCKET_NAME=${R2_EVIDENCE_BUCKET_NAME:-"acre-forensics-evidence"}
