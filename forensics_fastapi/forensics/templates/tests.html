@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}ACRE Core | Unit Test Console{% endblock %}
+
+{% block extra_head %}
+<style>
+    :root {
+        --bg-color: #09090b;
+        --text-color: #fafafa;
+        --card-bg: #18181b;
+        --border-color: #27272a;
+        --accent-color: #3b82f6;
+        --success-color: #22c55e;
+        --error-color: #ef4444;
+        --muted-text: #a1a1aa;
+    }
+
+    .test-container {
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+
+    .status-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        background-color: var(--card-bg);
+        border: 1px solid var(--border-color);
+        color: var(--muted-text);
+    }
+
+    .terminal {
+        background-color: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 1.5rem;
+        font-family: "Menlo", "Monaco", "Courier New", monospace;
+        font-size: 0.9rem;
+        min-height: 500px;
+        max-height: 70vh;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        position: relative;
+    }
+
+    .terminal-line {
+        margin-bottom: 2px;
+    }
+
+    .terminal-line.success {
+        color: var(--success-color);
+    }
+
+    .terminal-line.error {
+        color: var(--error-color);
+    }
+
+    .terminal-line.info {
+        color: var(--accent-color);
+    }
+
+    .status-bar {
+        margin-top: 1rem;
+        display: flex;
+        justify-content: space-between;
+        color: var(--muted-text);
+        font-size: 0.875rem;
+    }
+
+    .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: var(--muted-text);
+        display: inline-block;
+        margin-right: 0.5rem;
+    }
+
+    .dot.running {
+        background-color: var(--accent-color);
+        box-shadow: 0 0 8px var(--accent-color);
+    }
+
+    .dot.passed {
+        background-color: var(--success-color);
+    }
+
+    .dot.failed {
+        background-color: var(--error-color);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="test-container py-10 px-6">
+    <header class="flex justify-between items-center mb-8 pb-4 border-b border-gray-800">
+        <h1 class="text-2xl font-semibold text-white flex items-center gap-2">
+            ACRE Core
+            <span class="status-badge">TEST RUNNER</span>
+        </h1>
+        <div class="controls">
+            <button id="runBtn" onclick="runTests()"
+                class="bg-white text-black px-4 py-2 rounded-md font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity">
+                Run Tests
+            </button>
+        </div>
+    </header>
+
+    <div class="terminal custom-scroll" id="output">
+        <div style="color: var(--muted-text)">Ready to run unit tests...</div>
+    </div>
+
+    <div class="status-bar">
+        <div id="status-indicator" class="flex items-center">
+            <span class="dot" id="statusDot"></span>
+            <span id="statusText">Idle</span>
+        </div>
+        <div id="summaryText"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const output = document.getElementById('output');
+    const runBtn = document.getElementById('runBtn');
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const summaryText = document.getElementById('summaryText');
+
+    async function runTests() {
+        // Reset UI
+        output.innerHTML = '';
+        runBtn.disabled = true;
+        statusDot.className = 'dot running';
+        statusText.textContent = 'Running tests...';
+        summaryText.textContent = '';
+
+        try {
+            const response = await fetch('/api/tests/stream');
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+
+                const text = decoder.decode(value);
+                const lines = text.split('\n');
+
+                for (const line of lines) {
+                    if (!line) continue;
+
+                    const div = document.createElement('div');
+                    div.className = 'terminal-line';
+                    div.textContent = line;
+
+                    // Simple coloring logic based on pytest output
+                    if (line.includes('PASSED')) div.className += ' success';
+                    else if (line.includes('FAILED') || line.includes('ERROR')) div.className += ' error';
+                    else if (line.includes('collected')) div.className += ' info';
+
+                    output.appendChild(div);
+
+                    // Auto-scroll
+                    output.scrollTop = output.scrollHeight;
+                }
+            }
+
+            // Determine final status
+            if (output.textContent.includes('failed') || output.textContent.includes('ERRORS')) {
+                statusDot.className = 'dot failed';
+                statusText.textContent = 'Tests Failed';
+            } else if (output.textContent.includes('passed')) {
+                statusDot.className = 'dot passed';
+                statusText.textContent = 'All Tests Passed';
+            } else {
+                statusDot.className = 'dot';
+                statusText.textContent = 'Completed';
+            }
+
+        } catch (err) {
+            const div = document.createElement('div');
+            div.className = 'terminal-line error';
+            div.textContent = `Error executing tests: ${err.message}`;
+            output.appendChild(div);
+            statusDot.className = 'dot failed';
+            statusText.textContent = 'Error';
+        } finally {
+            runBtn.disabled = false;
+        }
+    }
+</script>
+{% endblock %}

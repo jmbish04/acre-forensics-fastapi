@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}ACRE Oversight | Mission Control{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+    .terminal-scroll::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .terminal-scroll::-webkit-scrollbar-track {
+        background: #1e293b;
+    }
+
+    .terminal-scroll::-webkit-scrollbar-thumb {
+        background: #475569;
+        border-radius: 4px;
+    }
+
+    .fade-in {
+        animation: fadeIn 0.3s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(5px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block header_actions %}
+<div class="flex items-center space-x-4">
+    <div class="flex items-center space-x-2 bg-slate-900/50 px-3 py-1.5 rounded-full border border-border">
+        <span id="connection-status-dot" class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+        <span id="connection-status-text"
+            class="text-xs font-medium text-textMuted uppercase tracking-wider">Disconnected</span>
+    </div>
+    {{ super() }}
+</div>
+{% endblock %}
+
+{% block main_class %}p-6 max-w-[1600px] mx-auto w-full grid grid-rows-[auto_1fr] gap-6 min-h-0{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 flex-none">
+    <div class="glass-panel p-4 rounded-xl shadow-lg relative overflow-hidden group">
+        <div class="text-textMuted text-xs font-bold uppercase tracking-wide mb-1">Queued</div>
+        <div id="stat-queued" class="text-3xl font-mono font-bold text-white">0</div>
+    </div>
+    <div class="glass-panel p-4 rounded-xl shadow-lg relative overflow-hidden group">
+        <div class="text-primary text-xs font-bold uppercase tracking-wide mb-1">In Pipeline</div>
+        <div id="stat-in-process" class="text-3xl font-mono font-bold text-white">0</div>
+    </div>
+    <div class="glass-panel p-4 rounded-xl shadow-lg relative overflow-hidden group">
+        <div class="text-secondary text-xs font-bold uppercase tracking-wide mb-1">Completed</div>
+        <div id="stat-completed" class="text-3xl font-mono font-bold text-white">0</div>
+    </div>
+    <div class="glass-panel p-4 rounded-xl shadow-lg relative overflow-hidden group border-rose-500/20">
+        <div class="text-rose-500 text-xs font-bold uppercase tracking-wide mb-1">Threats Detected</div>
+        <div id="stat-threats" class="text-3xl font-mono font-bold text-white">0</div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0">
+    <div class="lg:col-span-2 glass-panel rounded-xl flex flex-col min-h-0 bg-slate-900/80 border border-slate-700/50">
+        <div class="p-4 border-b border-border bg-slate-800/50 flex justify-between items-center rounded-t-xl">
+            <h3 class="text-sm font-semibold text-textMain flex items-center"><span class="mr-2">📺</span> Pipeline
+                Stream</h3>
+            <div class="h-8 w-32 relative"><canvas id="rateSparkline"></canvas></div>
+        </div>
+        <div id="log-terminal" class="flex-1 overflow-y-auto p-4 font-mono text-xs space-y-2 terminal-scroll"></div>
+    </div>
+
+    <div class="glass-panel rounded-xl p-0 flex flex-col min-h-0">
+        <div class="p-4 border-b border-border bg-slate-800/50">
+            <h3 class="text-sm font-semibold text-textMain flex items-center"><span class="mr-2">📧</span> Current
+                Analysis</h3>
+        </div>
+        <div class="p-6 space-y-6 overflow-y-auto flex-1 custom-scroll">
+            <div id="object-card-placeholder" class="text-center py-10 text-textMuted">
+                <div class="text-4xl mb-4 opacity-20">📡</div>
+                <p class="text-sm">Waiting for pipeline events...</p>
+            </div>
+            <div id="object-card-content" class="hidden space-y-6 fade-in">
+                <div>
+                    <div class="text-[10px] uppercase text-textMuted font-bold mb-1">Message Subject</div>
+                    <h2 id="obj-subject" class="text-lg font-bold text-white leading-tight">No Active Subject</h2>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <div class="text-[10px] uppercase text-textMuted font-bold mb-1">Sender</div>
+                        <div id="obj-sender" class="text-sm font-mono text-primary truncate">unknown@example.com</div>
+                    </div>
+                </div>
+                <hr class="border-border">
+                <div>
+                    <div class="text-[10px] uppercase text-textMuted font-bold mb-2">AI Categorization</div>
+                    <div id="obj-tags" class="flex flex-wrap gap-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${wsProtocol}//${window.location.host}/ws/monitor`;
+    let socket = null;
+    let reconnectTimer = null;
+    let stats = { queued: 0, in_process: 0, completed: 0, threats: 0 };
+    let rateChart = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initChart();
+        connect();
+    });
+
+    function connect() {
+        console.log("Connecting to WebSocket:", wsUrl);
+        socket = new WebSocket(wsUrl);
+
+        socket.onopen = () => {
+            console.log("Connected");
+            updateConnectionStatus(true);
+            clearTimeout(reconnectTimer);
+        };
+
+        socket.onclose = (event) => {
+            console.log("Disconnected", event.code, event.reason);
+            updateConnectionStatus(false);
+            reconnectTimer = setTimeout(connect, 3000);
+        };
+
+        socket.onerror = (error) => {
+            console.error("WebSocket Error:", error);
+        };
+
+        socket.onmessage = (event) => {
+            try {
+                handleMessage(JSON.parse(event.data));
+            } catch (e) {
+                console.error("Invalid JSON:", e);
+            }
+        };
+    }
+
+    function updateConnectionStatus(connected) {
+        const dot = document.getElementById('connection-status-dot');
+        const text = document.getElementById('connection-status-text');
+        if (connected) {
+            dot.className = "w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]";
+            text.textContent = "Live Connected";
+            text.classList.replace("text-textMuted", "text-green-500");
+        } else {
+            dot.className = "w-2 h-2 rounded-full bg-red-500 animate-pulse";
+            text.textContent = "Reconnecting...";
+            text.classList.replace("text-green-500", "text-textMuted");
+        }
+    }
+
+    function handleMessage(msg) {
+        if (msg.type === "INIT_STATS") {
+            stats = msg.data;
+            updateStatsUI();
+            if (stats.recent_logs) stats.recent_logs.forEach(log => appendLog(log, "REPLAY"));
+        }
+        else if (msg.type === "step_start") {
+            appendLog(msg.log, "PROCESS");
+            const idMatch = msg.log.match(/Processing ([\w-]+)/);
+            if (idMatch) updateObjectCard({ id: idMatch[1], status: "Active" });
+        }
+        else if (msg.type === "decision_made") {
+            const label = msg.label || {};
+            if (label.intent === 'Phishing') stats.threats += 1;
+            appendLog(`AI Verdict: ${label.intent}`, "AI");
+            updateObjectCard({ tags: [{ text: label.intent, type: 'intent' }] });
+            updateStatsUI();
+        }
+        else if (msg.log) {
+            appendLog(msg.log, "INFO");
+        }
+    }
+
+    function updateStatsUI() {
+        document.getElementById('stat-queued').textContent = stats.queued;
+        document.getElementById('stat-in-process').textContent = stats.in_process;
+        document.getElementById('stat-completed').textContent = stats.completed;
+        document.getElementById('stat-threats').textContent = stats.threats;
+    }
+
+    function appendLog(text, type = "INFO") {
+        const term = document.getElementById('log-terminal');
+        const entry = document.createElement('div');
+        entry.className = "flex items-start opacity-0 animate-fadeIn";
+        entry.style.animationName = "fadeIn";
+        entry.style.animationDuration = "0.2s";
+        entry.style.animationFillMode = "forwards";
+
+        const ts = new Date().toLocaleTimeString('en-US', { hour12: false });
+        let colorClass = "text-textMuted";
+        if (type === "PROCESS") colorClass = "text-blue-400";
+        if (type === "AI") colorClass = "text-purple-400";
+
+        entry.innerHTML = `<span class="text-gray-600 mr-2 flex-none">[${ts}]</span><span class="${colorClass}">${text}</span>`;
+        term.appendChild(entry);
+        term.scrollTop = term.scrollHeight;
+    }
+
+    function updateObjectCard(data) {
+        document.getElementById('object-card-placeholder').classList.add('hidden');
+        document.getElementById('object-card-content').classList.remove('hidden');
+        if (data.id) document.getElementById('obj-subject').textContent = `Analysis: ${data.id}`;
+        if (data.tags) {
+            const container = document.getElementById('obj-tags');
+            container.innerHTML = '';
+            data.tags.forEach(tag => {
+                const el = document.createElement('span');
+                el.className = "px-2 py-1 rounded bg-indigo-500/20 text-indigo-300 text-[10px] font-bold border border-indigo-500/30";
+                el.textContent = tag.text;
+                container.appendChild(el);
+            });
+        }
+    }
+
+    function initChart() {
+        const ctx = document.getElementById('rateSparkline').getContext('2d');
+        rateChart = new Chart(ctx, {
+            type: 'line',
+            data: { labels: Array(10).fill(''), datasets: [{ data: Array(10).fill(0), borderColor: '#6366f1', borderWidth: 2, tension: 0.4, pointRadius: 0 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
+        });
+    }
+</script>
+{% endblock %}

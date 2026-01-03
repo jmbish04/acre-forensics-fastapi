@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}ACRE Setup Guide{% endblock %}
+
+{% block extra_head %}
+<style>
+    .code-block {
+        background: #000;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.875rem;
+        color: #4ade80;
+        /* green-400 */
+        overflow-x: auto;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-6 py-12 space-y-12">
+
+    <!-- Header -->
+    <div class="text-center mb-12">
+        <h1 class="text-4xl font-extrabold text-white mb-4">Configuration & Deployment</h1>
+        <p class="text-slate-400">Step-by-step instructions to configure your forensic environment.</p>
+    </div>
+
+    <!-- 1. Gmail Authentication -->
+    <section id="gmail-auth" class="glass-panel p-8">
+        <h2 class="text-2xl font-bold text-white mb-6 border-l-4 border-brand-400 pl-4">1. Gmail OAuth Configuration
+        </h2>
+        <p class="text-slate-300 mb-4">To ingest data directly from Gmail, you must configure a Google Cloud Project
+            with the Gmail API enabled.</p>
+
+        <div class="space-y-6">
+            <div>
+                <h3 class="font-semibold text-white mb-2">Step A: Create Credentials</h3>
+                <ul class="list-disc list-inside text-slate-400 space-y-1 ml-2">
+                    <li>Go to Google Cloud Console > APIs & Services.</li>
+                    <li>Enable <strong>Gmail API</strong>.</li>
+                    <li>Create OAuth 2.0 Credentials (Desktop App).</li>
+                    <li>Download JSON and save as <code
+                            class="bg-slate-800 px-2 py-0.5 rounded text-white">credentials.json</code> in the
+                        project root.</li>
+                </ul>
+            </div>
+
+            <div>
+                <h3 class="font-semibold text-white mb-2">Step B: Authenticate</h3>
+                <p class="text-slate-400 mb-2">Run the collector once manually to generate the refresh token:</p>
+                <div class="code-block">
+                    .venv/bin/python src/forensics/gmail_collector.py
+                    # A browser window will open. Login and grant Read-Only access.
+                    # This saves 'token.json' locally.
+                </div>
+            </div>
+
+            <div class="bg-brand-accent/10 border border-brand-accent/20 p-4 rounded-lg mt-4">
+                <h4 class="font-bold text-brand-accent text-sm mb-2">⚠️ Troubleshooting: Error 403 org_internal</h4>
+                <p class="text-sm text-slate-300">If you see "restricted to users within its organization", your
+                    OAuth screen configuration is too restrictive.</p>
+                <ol class="list-decimal list-inside text-sm text-slate-400 mt-2 space-y-1">
+                    <li>Go to <strong>Google Cloud Console > OAuth consent screen</strong>.</li>
+                    <li>Change <strong>User Type</strong> from 'Internal' to <strong>External</strong>.</li>
+                    <li>Set status to <strong>Testing</strong>.</li>
+                    <li>Add your email address under <strong>Test users</strong>.</li>
+                    <li>Save and Retry.</li>
+                </ol>
+            </div>
+        </div>
+    </section>
+
+    <!-- 2. EML Ingestion -->
+    <section id="eml-ops" class="glass-panel p-8">
+        <h2 class="text-2xl font-bold text-white mb-6 border-l-4 border-brand-accent pl-4">2. EML / MBOX Ingestion
+        </h2>
+
+        <div class="space-y-6">
+            <div>
+                <h3 class="font-semibold text-white mb-2">Manual Upload</h3>
+                <p class="text-slate-400 mb-2">You can drop raw <code
+                        class="bg-slate-800 px-2 py-0.5 rounded text-white">.eml</code> files directly into the
+                    evidence locker folder on the server, or use the API:</p>
+                <div class="code-block">
+                    curl -X POST "http://localhost:8000/ingest/eml" \
+                    -H "accept: application/json" \
+                    -H "Content-Type: multipart/form-data" \
+                    -F "file=@/path/to/suspicious_email.eml"
+                </div>
+            </div>
+
+            <div>
+                <h3 class="font-semibold text-white mb-2">MBOX Extraction</h3>
+                <p class="text-slate-400 mb-2">If you have a full MBOX export, convert it to individual EMLs first
+                    (the system demands atomicity):</p>
+                <div class="code-block">
+                    # Using local tool
+                    mkdir -p evidence_export
+                    csplit -k mbox_file '/^From /' {99999}
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3. Cloudflare Configuration -->
+    <section id="cloudflare-auth" class="glass-panel p-8">
+        <h2 class="text-2xl font-bold text-white mb-6 border-l-4 border-orange-500 pl-4">3. Cloudflare & Worker
+            Setup</h2>
+        <p class="text-slate-300 mb-4">When migrating to the edge (Production), configure your Worker environment.
+        </p>
+
+        <div class="space-y-6">
+            <div>
+                <h3 class="font-semibold text-white mb-2">Step A: Wrangler Secrets</h3>
+                <p class="text-slate-400 mb-2">Store your sensitive OAuth tokens securely in Cloudflare:</p>
+                <div class="code-block">
+                    npx wrangler secret put GMAIL_CLIENT_ID
+                    npx wrangler secret put GMAIL_CLIENT_SECRET
+                    npx wrangler secret put GMAIL_REFRESH_TOKEN # From token.json
+                </div>
+            </div>
+
+            <div>
+                <h3 class="font-semibold text-white mb-2">Step B: Infrastructure Binding</h3>
+                <p class="text-slate-400 mb-2">Ensure <code
+                        class="bg-slate-800 px-2 py-0.5 rounded text-white">wrangler.toml</code> has the correct
+                    bindings:</p>
+                <div class="code-block">
+                    [[d1_databases]]
+                    binding = "GMAIL_DB"
+                    database_name = "forensics"
+                    database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+                    [[r2_buckets]]
+                    binding = "EVIDENCE_BUCKET"
+                    bucket_name = "acre-evidence-locker"
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div>
+{% endblock %}

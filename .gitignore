@@ -65,3 +65,5 @@ docs/.vitepress/dist
 # macOS
 # https://github.com/github/gitignore/blob/master/Global/macOS.gitignore
 .DS_Store
+.dev.vars
+service_account_creds.json

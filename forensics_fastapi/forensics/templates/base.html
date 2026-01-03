@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}ACRE Forensics{% endblock %}</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        background: '#0f172a',
+                        surface: '#1e293b',
+                        brand: {
+                            900: '#0f172a',
+                            800: '#1e293b',
+                            500: '#3b82f6',
+                            400: '#60a5fa',
+                            accent: '#f43f5e'
+                        },
+                        textMain: '#f8fafc',
+                        textMuted: '#94a3b8',
+                        border: '#334155'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Shared Styles -->
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+        }
+
+
+    </style>
+
+    {% block extra_css %}{% endblock %}
+    {% block extra_head %}{% endblock %}
+</head>
+
+<body class="min-h-screen flex flex-col">
+
+    <!-- Shared Navigation -->
+    <nav class="border-b border-white/10 bg-brand-900/50 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-[1600px] mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <a href="/" class="flex items-center space-x-2">
+                    <span class="text-2xl">🛡️</span>
+                    <span class="font-bold text-xl tracking-tight text-white">ACRE <span
+                            class="text-brand-400">Forensics</span></span>
+                </a>
+            </div>
+
+            <div class="flex space-x-1">
+                <a href="/overview"
+                    class="px-4 py-2 text-sm font-medium hover:text-brand-400 hover:bg-white/5 rounded-md transition-colors {% if request.url.path == '/overview' %}text-brand-400 bg-white/5{% endif %}">System
+                    Overview</a>
+                <a href="/monitor"
+                    class="px-4 py-2 text-sm font-medium hover:text-brand-400 hover:bg-white/5 rounded-md transition-colors {% if request.url.path == '/monitor' %}text-brand-400 bg-white/5{% endif %}">Oversight
+                    Dashboard</a>
+                <a href="/setup"
+                    class="px-4 py-2 text-sm font-medium hover:text-brand-400 hover:bg-white/5 rounded-md transition-colors {% if request.url.path == '/setup' %}text-brand-400 bg-white/5{% endif %}">Setup
+                    Guide</a>
+                <a href="/tests"
+                    class="px-4 py-2 text-sm font-medium hover:text-brand-400 hover:bg-white/5 rounded-md transition-colors {% if request.url.path == '/tests' %}text-brand-400 bg-white/5{% endif %}">Test
+                    Runner</a>
+            </div>
+
+            <div class="flex items-center space-x-4">
+                <a href="/docs" target="_blank"
+                    class="text-sm font-medium text-textMuted hover:text-white transition-colors">API Docs</a>
+
+                <!-- Run Pipeline Button (Shared Trigger) -->
+                {% block header_actions %}
+                <button onclick="triggerPipeline()"
+                    class="px-4 py-2 bg-brand-500 hover:bg-brand-400 text-white text-sm font-bold rounded shadow-lg shadow-brand-500/20 transition-all flex items-center">
+                    <span class="mr-2">▶</span> Run Pipeline
+                </button>
+                {% endblock %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Content -->
+    <main class="flex-grow {% block main_class %}{% endblock %}">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-white/5 bg-black/20 mt-auto py-8">
+        <div class="text-center text-slate-500 text-sm">
+            &copy; 2025 ACRE Forensic Systems. Strict Chain of Custody Verified.
+        </div>
+    </footer>
+
+    <!-- Shared Scripts -->
+    <script>
+        async function triggerPipeline() {
+            const btn = document.querySelector('button[onclick="triggerPipeline()"]');
+            const originalText = btn.innerHTML;
+
+            try {
+                btn.innerHTML = '<span class="animate-spin mr-2">↻</span> Starting...';
+                btn.disabled = true;
+
+                // Call API
+                const res = await fetch('/pipeline/run', { method: 'POST' });
+                const data = await res.json();
+
+                if (res.ok) {
+                    // Show toast or alert? use simple replacement for now
+                    btn.innerHTML = '<span class="mr-2">✅</span> Started';
+                    btn.classList.add('bg-green-600', 'hover:bg-green-500');
+                    btn.classList.remove('bg-brand-500', 'hover:bg-brand-400');
+
+                    setTimeout(() => {
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                        btn.classList.remove('bg-green-600', 'hover:bg-green-500');
+                        btn.classList.add('bg-brand-500', 'hover:bg-brand-400');
+                        // Redirect to monitor if not there
+                        if (!window.location.pathname.includes('/monitor')) {
+                            window.location.href = '/monitor';
+                        }
+                    }, 2000);
+                } else {
+                    throw new Error(data.message || 'Failed');
+                }
+            } catch (e) {
+                console.error(e);
+                btn.innerHTML = '<span class="mr-2">⚠️</span> Error';
+                btn.classList.add('bg-red-600');
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    btn.classList.remove('bg-red-600');
+                }, 3000);
+            }
+        }
+    </script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+
+</html>

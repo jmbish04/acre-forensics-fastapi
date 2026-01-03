@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}ACRE Forensic Engine{% endblock %}
+
+{% block extra_head %}
+<style>
+    .hero-glow {
+        background: radial-gradient(circle at center, rgba(59, 130, 246, 0.15), transparent 70%);
+    }
+</style>
+{% endblock %}
+
+{% block main_class %}hero-glow{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-6 py-16">
+
+    <div class="text-center max-w-3xl mx-auto mb-16">
+        <h1 class="text-5xl font-extrabold text-white mb-6 leading-tight">
+            Adversarial Communication <br>
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-indigo-400">Reconstruction
+                Engine</span>
+        </h1>
+        <p class="text-lg text-slate-400 mb-8 leading-relaxed">
+            A forensic-grade system for reconstructing email threads as <strong>Atomic Transcripts</strong>.
+            Detect inline interjections, visual aggression, and authorship shifts with cryptographic
+            chain-of-custody.
+        </p>
+        <div class="flex justify-center space-x-4">
+            <button onclick="document.getElementById('docs-section').scrollIntoView({behavior: 'smooth'})"
+                class="px-6 py-3 rounded-lg border border-white/20 hover:bg-white/5 transition-colors font-medium">
+                Learn More
+            </button>
+            <a href="/docs"
+                class="px-6 py-3 rounded-lg bg-white text-brand-900 font-bold hover:bg-slate-200 transition-colors shadow-xl">
+                Explore API
+            </a>
+        </div>
+    </div>
+
+    <!-- Dashboard / Status Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+        <!-- Status Card -->
+        <div class="glass-panel p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-white">System Status</h3>
+                <span class="px-2 py-1 rounded bg-green-500/20 text-green-400 text-xs font-mono">ONLINE</span>
+            </div>
+            <div class="space-y-3">
+                <div class="flex justify-between text-sm">
+                    <span class="text-slate-400">API Version</span>
+                    <span class="font-mono">1.0</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-slate-400">OpenAPI</span>
+                    <span class="font-mono">3.1.0</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-slate-400">Database</span>
+                    <span class="font-mono text-brand-400">SQLite (D1 Ready)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ingestion Card -->
+        <div class="glass-panel p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-white">Ingestion Sources</h3>
+            </div>
+            <div class="space-y-2">
+                <div class="flex items-center space-x-3 p-2 rounded hover:bg-white/5 transition">
+                    <span class="text-xl">📧</span>
+                    <div>
+                        <div class="font-medium text-white">EML Upload</div>
+                        <div class="text-xs text-slate-500">RFC 822 Raw Bytes</div>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3 p-2 rounded hover:bg-white/5 transition">
+                    <span class="text-xl">📥</span>
+                    <div>
+                        <div class="font-medium text-white">Gmail Cloud Sync</div>
+                        <div class="text-xs text-slate-500">OAuth / Base64URL</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pipeline Card -->
+        <div class="glass-panel p-6 relative overflow-hidden group">
+            <div
+                class="absolute inset-0 bg-gradient-to-br from-brand-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+            </div>
+            <div class="relative z-10">
+                <h3 class="text-lg font-semibold text-white mb-4">Forensic Pipeline</h3>
+                <ul class="space-y-2 text-sm text-slate-300">
+                    <li class="flex items-center"><span class="w-2 h-2 rounded-full bg-brand-400 mr-2"></span>
+                        Atomizer (DOM Parsing)</li>
+                    <li class="flex items-center"><span class="w-2 h-2 rounded-full bg-brand-400 mr-2"></span>
+                        Attribution (Heuristics)</li>
+                    <li class="flex items-center"><span class="w-2 h-2 rounded-full bg-brand-400 mr-2"></span>
+                        Verification (Diff-Match)</li>
+                    <li class="flex items-center"><span class="w-2 h-2 rounded-full bg-brand-400 mr-2"></span>
+                        Reporting (JSON/MD)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Documentation Section -->
+    <div id="docs-section" class="max-w-4xl mx-auto space-y-12">
+
+        <!-- How to Use -->
+        <section>
+            <h2 class="text-3xl font-bold text-white mb-6 border-l-4 border-brand-500 pl-4">How to Use</h2>
+            <div class="glass-panel p-8 space-y-8">
+                <div>
+                    <h3 class="text-xl font-semibold text-white mb-2">1. Ingest Evidence</h3>
+                    <p class="text-slate-400 mb-4">Upload raw .eml files or sync directly from Gmail. <a href="/setup"
+                            class="text-brand-400 hover:underline">See Setup Guide</a>.</p>
+                    <div class="bg-black/50 p-4 rounded-lg font-mono text-sm text-green-400 overflow-x-auto">
+                        POST /ingest/eml (multipart/form-data)
+                        POST /ingest/gmail {"query": "after:2024/01/01"}
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-xl font-semibold text-white mb-2">2. Run Pipeline</h3>
+                    <p class="text-slate-400 mb-4">Trigger the forensic analysis engine. This runs largely in
+                        the background.</p>
+                    <div class="bg-black/50 p-4 rounded-lg font-mono text-sm text-green-400 overflow-x-auto">
+                        POST /pipeline/run
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-xl font-semibold text-white mb-2">3. Retrieve Reports</h3>
+                    <p class="text-slate-400 mb-4">Download the reconstructed timeline or the forensic markdown
+                        report.</p>
+                    <div class="flex space-x-4">
+                        <a href="/reports/forensic" target="_blank"
+                            class="px-4 py-2 bg-white/5 hover:bg-white/10 rounded border border-white/10 text-sm">View
+                            Markdown Report 📄</a>
+                        <a href="/reports/timeline" target="_blank"
+                            class="px-4 py-2 bg-white/5 hover:bg-white/10 rounded border border-white/10 text-sm">View
+                            JSON Data 📊</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- About -->
+        <section>
+            <h2 class="text-3xl font-bold text-white mb-6 border-l-4 border-brand-accent pl-4">What It Does</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="glass-panel p-6">
+                    <h4 class="font-bold text-white mb-2">Zero-Trust Analysis</h4>
+                    <p class="text-sm text-slate-400">Treats every email as a graph of atomic assertions. Does
+                        not trust the visual rendering of the client.</p>
+                </div>
+                <div class="glass-panel p-6">
+                    <h4 class="font-bold text-white mb-2">Franken-Thread Detection</h4>
+                    <p class="text-sm text-slate-400">Identifies when a sender has edited the quoted history of
+                        a previous email (inline interjections).</p>
+                </div>
+                <div class="glass-panel p-6">
+                    <h4 class="font-bold text-white mb-2">Visual Fingerprinting</h4>
+                    <p class="text-sm text-slate-400">Extracts CSS styles (Red, Bold, Uppercase) to detect
+                        efficient aggression.</p>
+                </div>
+                <div class="glass-panel p-6">
+                    <h4 class="font-bold text-white mb-2">Offline-First</h4>
+                    <p class="text-sm text-slate-400">Runs locally using SQLite and lightweight NLP (Spacy),
+                        avoiding cloud dependencies for privacy.</p>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+</div>
+{% endblock %}

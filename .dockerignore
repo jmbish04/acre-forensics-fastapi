@@ -1,0 +1,47 @@
+# Version Control
+.git
+.gitignore
+
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+
+# Wrangler / Cloudflare
+.wrangler
+.dev.vars
+worker-configuration.d.ts
+
+# Build Outputs
+dist
+build
+.next
+out
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+
+# IDEs
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Agent Internal
+.gemini
