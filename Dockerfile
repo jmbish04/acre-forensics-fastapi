@@ -1,4 +1,5 @@
 # Stage 1: Builder
+# FROM python:3.12-slim AS builder
 FROM docker.io/cloudflare/sandbox:0.3.3 AS builder
 
 WORKDIR /workspace
@@ -13,23 +14,21 @@ RUN apt-get update && apt-get install -y \
     gnupg \
     && rm -rf /var/lib/apt/lists/*
 
-# [FIX] Copy only pyproject.toml initially. uv.lock is generated in the next step.
-COPY pyproject.toml .
-
-# [FIX] Run 'uv lock' to generate the lockfile, then export.
-# We remove '--frozen' because we are generating the lockfile on the fly.
+COPY pyproject.toml uv.lock .
 RUN pip install uv && \
-    uv lock && \
-    uv export --no-hashes --format requirements-txt --output-file requirements.txt && \
+    uv export --frozen --no-hashes --format requirements-txt --extra dev --output-file requirements.txt && \
     pip install --upgrade pip && \
     pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 # Stage 2: Runtime
+#FROM python:3.12-slim
 FROM docker.io/cloudflare/sandbox:0.3.3
 
 WORKDIR /workspace
 
 # Install runtime dependencies and Node.js/Wrangler
+# We need Node.js/Wrangler for 'wrangler tail' support in the app
+# Added git, procps (for ps), vim, nano for Sandbox SDK interactive session capabilities
 RUN apt-get update && apt-get install -y \
     libmagic1 \
     libpq-dev \
@@ -52,11 +51,25 @@ RUN apt-get update && apt-get install -y \
     && npm install -g wrangler \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv AND uvicorn[standard] to enable WebSockets
+# Install tigrisfs
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then ARCH="amd64"; fi && \
+    if [ "$ARCH" = "aarch64" ]; then ARCH="arm64"; fi && \
+    VERSION=$(curl -s https://api.github.com/repos/tigrisdata/tigrisfs/releases/latest | grep -o '"tag_name": "[^"]*' | cut -d'"' -f4) && \
+    curl -L "https://github.com/tigrisdata/tigrisfs/releases/download/${VERSION}/tigrisfs_${VERSION#v}_linux_${ARCH}.tar.gz" -o /tmp/tigrisfs.tar.gz && \
+    tar -xzf /tmp/tigrisfs.tar.gz -C /usr/local/bin/ && \
+    rm /tmp/tigrisfs.tar.gz && \
+    chmod +x /usr/local/bin/tigrisfs
+
+# [FIX] Install uv AND uvicorn[standard] to enable WebSockets
 RUN pip install uv "uvicorn[standard]"
 
 # Copy installed python packages from builder
 # ### DO NOT CHANGE THE COPY PATH BELOW ###
+# The 'pip install --prefix=/install' command on the Debian-based Cloudflare image
+# creates a nested '/install/local/...' directory structure (Double Local).
+# We MUST copy from /install/local to /usr/local to strip this extra nesting layer.
+# Changing this to '/install' or removing '/local' will BREAK the container python path.
 COPY --from=builder /install/local /usr/local
 
 # Copy application code
@@ -74,8 +87,8 @@ RUN mkdir -p /workspace/src && \
     mkdir -p /workspace/src/data && \
     mkdir -p /workspace/logs
 
-EXPOSE 8000
+EXPOSE $PORT
 ENV PYTHONUNBUFFERED=1
 
 ENTRYPOINT ["/boot.sh"]
-CMD ["python3", "-m", "uvicorn", "forensics_fastapi.forensics.api:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD python3 -m uvicorn forensics_fastapi.forensics.api:app --host 0.0.0.0 --port $PORT
