@@ -1,0 +1,17 @@
+{
+  "name": "acre-forensics-fastapi",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@cloudflare/sandbox": "^0.3.3"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240208.0",
+    "tsx": "^4.7.1",
+    "typescript": "^5.3.3",
+    "wrangler": "^4.54.0"
+  }
+}
