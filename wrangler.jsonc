@@ -24,24 +24,17 @@
 			"https://www.googleapis.com/auth/gmail.readonly",
 			"https://www.googleapis.com/auth/drive.readonly"
 		],
-		"CONTAINER_HTTP_PORT": 8000, // The controller manages the FastAPI server on port 8000 (avoiding the reserved port 3000)
+		"CONTAINER_HTTP_PORT": 8000,
 		"CONTAINER_SLEEP_AFTER": "5m",
 		"CONTAINER_KEEP_ALIVE": false,
 		"CONTAINER_INSTANCE_TIMEOUT_MS": 90000,
-		"CONTAINER_INSTANCE_PORT_READY_TIMEOUT_MS": 90000,
-		// "SANDBOX_INSTANCE_NAME": "forensics-core", -- this is a secret in .dev.vars
-		// "HEALTH_SANDBOX_NAME": "forensics-health" -- this is a secret in .dev.vars
-		// "GOOGLE_WORKSPACE_TARGET_USER": "" -- Is set as a secret
-		// "GCP_SERVICE_ACCOUNT": "" -- Is set as a secret
+		"CONTAINER_INSTANCE_PORT_READY_TIMEOUT_MS": 90000
 	},
 	"durable_objects": {
 		"bindings": [
-			// -----------------------------------------------------------------------------
-			// Container
-			// -----------------------------------------------------------------------------
 			{
-				"name": "SANDBOX_FASTAPI_CONTAINER",
-				"class_name": "SandboxFastApiContainer"
+				"name": "CONTAINER_SANDBOX_SDK",
+				"class_name": "ContainerSandboxSDK"
 			}
 		]
 	},
@@ -49,16 +42,16 @@
 		{
 			"tag": "v1",
 			"new_sqlite_classes": [
-				"SandboxFastApiContainer" // Sandbox-sdk Container DO
+				"ContainerSandboxSDK"
 			]
 		}
 	],
 	"containers": [
 		{
 			"name": "fastapi-container-sandbox-sdk",
-			"image": "Dockerfile", // Path to the Dockerfile
+			"image": "Dockerfile",
 			"instance_type": "standard-2",
-			"class_name": "SandboxFastApiContainer",
+			"class_name": "ContainerSandboxSDK",
 			"max_instances": 2
 		}
 	]
