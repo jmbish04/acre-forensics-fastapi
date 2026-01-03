@@ -1,0 +1,43 @@
+[project]
+name = "acre-forensics-fastapi"
+version = "0.1.0"
+description = "ACRE Forensics FastAPI Container"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "python-dotenv",
+    "httpx",
+    "requests",
+    "jinja2",
+    "python-multipart",
+    "beautifulsoup4",
+    "lxml",
+    "nltk",
+    "sqlalchemy",
+    "psycopg2-binary",
+    "typer",
+    "rich",
+    "google-auth",
+    "google-auth-oauthlib",
+    "google-auth-httplib2",
+    "google-api-python-client",
+    "boto3",
+    "ocrmypdf",
+    "pdf2image",
+    "pypdf",
+    "pytesseract",
+    "img2pdf",
+    "diff-match-patch",
+    "pandas",
+    "plotly",
+    "scikit-learn",
+    "vaderSentiment",
+    "wordcloud",
+    "nbformat"
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
