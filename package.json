@@ -3,7 +3,11 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "typegen": "wrangler types",
+    "tail": "wrangler tail",
+    "cf:login": "wrangler login",
+    "test:remote": "wrangler dev --remote"
   },
   "dependencies": {
     "@cloudflare/sandbox": "^0.3.3"
