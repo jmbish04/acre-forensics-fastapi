@@ -1,18 +1,12 @@
 {
 	"$schema": "./node_modules/wrangler/config-schema.json",
-	"name": "acre-forensics-backend",
+	"name": "acre-forensics-fastapi",
 	"main": "src/index.ts",
 	"compatibility_date": "2025-11-27",
 	"compatibility_flags": [
 		"nodejs_compat"
 	],
 	"workers_dev": true,
-	// "routes": [
-	// 	{
-	// 		"pattern": "acre-forensics-api.hacolby.app",
-	// 		"custom_domain": true
-	// 	}
-	// ],
 	"upload_source_maps": true,
 	"assets": {
 		"directory": "./dist/client",
@@ -24,11 +18,8 @@
 		"head_sampling_rate": 1
 	},
 	"vars": {
-		"D1_DATABASE_URL": "d1://acre-forensics.d1.cloudflare.com/acre-forensics", // for drizzle.config.ts
-		"SODA_BASE": "https://data.sfgov.org/api/v3/views/",
 		"OPENAI_MODEL": "gpt-5.1",
 		"GEMINI_MODEL": "gemini-3-pro-preview",
-		"AI_GATEWAY_NAME": "acre-forensics",
 		"GOOGLE_SCOPES": [
 			"https://www.googleapis.com/auth/gmail.readonly",
 			"https://www.googleapis.com/auth/drive.readonly"
@@ -43,148 +34,14 @@
 		// "GOOGLE_WORKSPACE_TARGET_USER": "" -- Is set as a secret
 		// "GCP_SERVICE_ACCOUNT": "" -- Is set as a secret
 	},
-	"d1_databases": [
-		{
-			"binding": "DB",
-			"database_name": "acre-forensics",
-			"database_id": "8887c9fb-8bca-405c-9144-44d9910ebccc", //8887c9fb-8bca-405c-9144-44d9910ebccc
-			"migrations_dir": "drizzle/d1"
-		}
-	],
-	"hyperdrive": [
-		{
-			"binding": "HYPERDRIVE",
-			"id": "c80da6008af14c07b9e2efe57be6a493"
-		}
-	],
-	"r2_buckets": [
-		{
-			"binding": "R2_EVIDENCE",
-			"bucket_name": "acre-forensics-evidence",
-			"remote": true
-		},
-		{
-			"bucket_name": "acre-forensics-doc-pages",
-			"binding": "R2_DOC_PAGES",
-			"remote": true
-		},
-		{
-			"bucket_name": "acre-forensics-doc-ai-search",
-			"binding": "R2_DOC_AI_SEARCH",
-			"remote": true
-		},
-		{
-			"bucket_name": "acre-forensics-reports",
-			"binding": "R2_REPORTS",
-			"remote": true
-		},
-		{
-			"bucket_name": "acre-forensics-sys-misc",
-			"binding": "R2_SYS_MISC",
-			"remote": true
-		}
-	],
-	"vectorize": [
-		//npx wrangler vectorize create acre-forensics --preset @cf/baai/bge-large-en-v1.5
-		//npx wrangler vectorize create acre-forensics-regs-docs --preset @cf/baai/bge-large-en-v1.5
-		{
-			"binding": "VECTOR_INDEX",
-			"index_name": "acre-forensics",
-			"remote": true
-		},
-		{
-			"binding": "VECTOR_REGULATION_INDEX",
-			"index_name": "acre-forensics-regs-docs",
-			"remote": true
-		}
-	],
-	"ai": {
-		"binding": "AI",
-		"remote": true
-	},
 	"durable_objects": {
 		"bindings": [
 			// -----------------------------------------------------------------------------
-			// Core / Workflow Agents
+			// Container
 			// -----------------------------------------------------------------------------
 			{
-				"name": "ENGAGEMENT_ORCHESTRATOR",
-				"class_name": "EngagementOrchestrator"
-			},
-			{
-				"name": "CLASSIFIER_AGENT",
-				"class_name": "ForensicClassifierAgent"
-			},
-			{
-				"name": "FORENSICS_AGENT",
-				"class_name": "ForensicAnalystAgent"
-			},
-			{
-				"name": "VERIFICATION_AGENT",
-				"class_name": "VerificationAgent"
-			},
-			{
-				"name": "STRATEGY_AGENT",
-				"class_name": "StrategyAgent"
-			},
-			// -----------------------------------------------------------------------------
-			// Team / Specialist Agents
-			// -----------------------------------------------------------------------------
-			{
-				"name": "AGENT_JUDGE",
-				"class_name": "ForensicJudge"
-			},
-			{
-				"name": "AGENT_TIMELINE",
-				"class_name": "TimelineAgent"
-			},
-			{
-				"name": "AGENT_PROFILER",
-				"class_name": "PsychProfilerAgent"
-			},
-			// -----------------------------------------------------------------------------
-			// Regulatory / External Agents
-			// -----------------------------------------------------------------------------
-			{
-				"name": "REGULATORY_AGENT",
-				"class_name": "RegulatoryAgent"
-			},
-			// -----------------------------------------------------------------------------
-			// Chat / Interaction Agents
-			// -----------------------------------------------------------------------------
-			{
-				"name": "RAG_AGENT",
-				"class_name": "RagAgent"
-			},
-			{
-				"name": "TERMINAL_AGENT",
-				"class_name": "TerminalAgent"
-			},
-			// -----------------------------------------------------------------------------
-			// Tools / State
-			// -----------------------------------------------------------------------------
-			{
-				"name": "JOB_STATE",
-				"class_name": "JobState"
-			},
-			{
-				"name": "WORKFLOW_STREAM",
-				"class_name": "WorkflowStreamDO"
-			},
-			{
-				"name": "SANDBOX_AGENT",
-				"class_name": "SandboxAgent"
-			},
-			{
-				"name": "CONTAINER_SANDBOX_SDK",
-				"class_name": "ContainerSandboxSDK"
-			},
-			// -----------------------------------------------------------------------------
-			// Containers
-			// -----------------------------------------------------------------------------
-			{
-				"name": "CONTAINER_WEBHOOK_DO",
-				"class_name": "ContainerWebhookDO"
+				"name": "SANDBOX_FASTAPI_CONTAINER",
+				"class_name": "SandboxFastApiContainer"
 			}
 		]
 	},
@@ -192,145 +49,17 @@
 		{
 			"tag": "v1",
 			"new_sqlite_classes": [
-				// Core / Workflow
-				"EngagementOrchestrator", // Global workflow coordinator
-				"ForensicClassifierAgent", // Classifies input data types
-				"ForensicAnalystAgent", // Deep analysis agent
-				"StrategyAgent", // Strategic planning agent
-				"VerificationAgent", // Verifies analysis results
-				// Team
-				"ForensicJudge", // Evaluates team outputs
-				"TimelineAgent", // Constructs event timelines
-				"PsychProfilerAgent", // Psychological profiling
-				// Regulatory
-				"RegulatoryAgent", // Consolidated Regulatory Agent
-				// Tools & State
-				"RagAgent", // Retrieval Augmented Generation
-				"TerminalAgent", // Interactive shell access
-				"JobState", // Shared job state storage
-				"WorkflowStreamDO", // Real-time workflow events
-				"ContainerSandboxSDK", // Sandbox-sdk Container DO (was Sandbox)
-				"SandboxAgent", // Agent Wrapper for Sandbox
-				// Containers & Infra
-				"ContainerWebhookDO" // Webhook Handler for containers
+				"SandboxFastApiContainer" // Sandbox-sdk Container DO
 			]
 		}
 	],
-	"queues": {
-		"producers": [
-			{
-				"binding": "QUEUE_INGEST",
-				"queue": "acre-forensics-ingest"
-			},
-			{
-				"binding": "QUEUE_EMBED",
-				"queue": "acre-forensics-embed"
-			},
-			{
-				"binding": "FORENSIC_ANALYSIS_QUEUE",
-				"queue": "acre-forensics-container-tasks"
-			}
-		],
-		"consumers": [
-			{
-				"queue": "acre-forensics-ingest",
-				"max_batch_size": 10,
-				"max_batch_timeout": 5
-			},
-			{
-				"queue": "acre-forensics-embed",
-				"max_batch_size": 10,
-				"max_batch_timeout": 5
-			},
-			{
-				"queue": "acre-forensics-container-tasks",
-				"max_batch_size": 1,
-				"max_batch_timeout": 30
-			}
-		]
-	},
-	"workflows": [
-		{
-			"binding": "FORENSIC_ANALYSIS_WORKFLOW",
-			"name": "forensics-analysis",
-			"class_name": "ForensicWorkflow"
-		},
-		{
-			"binding": "KNOWLEDGE_CRAWLER_WORKFLOW",
-			"name": "knowledge-crawler",
-			"class_name": "KnowledgeCrawlerWorkflow"
-		},
-		{
-			"binding": "ATTACHMENT_TRIAGE_WORKFLOW",
-			"name": "attachment-triage",
-			"class_name": "AttachmentTriageWorkflow"
-		},
-		{
-			"binding": "ATTACHMENT_GENAI_WORKFLOW",
-			"name": "attachment-genai",
-			"class_name": "AttachmentGenAIWorkflow"
-		},
-		{
-			"binding": "GMAIL_INGESTION_WORKFLOW",
-			"name": "gmail-ingestion",
-			"class_name": "GmailIngestionWorkflow"
-		}
-	],
-	"triggers": {
-		"crons": [
-			"*/15 * * * *", // Ingestion: Every 15 minutes
-			"*/10 * * * *", // Health: Every 10 minutes (Dedicated)
-			"0 * * * *", // Hourly maintenance
-			"*/5 * * * *" // Ingestion Loop: Run every 5 minutes to fetch emails via container
-		]
-	},
 	"containers": [
 		{
-			"name": "forensic-container-sandbox-sdk",
+			"name": "fastapi-container-sandbox-sdk",
 			"image": "Dockerfile", // Path to the Dockerfile
 			"instance_type": "standard-2",
-			"class_name": "ContainerSandboxSDK",
+			"class_name": "SandboxFastApiContainer",
 			"max_instances": 2
-		}
-	],
-	"kv_namespaces": [
-		{
-			"binding": "KV_LOGS",
-			"id": "78f900658c5c4a6989971bda7b6ac157",
-			"remote": true
-		},
-		{
-			"binding": "KV_AUDIT_LOGS",
-			"id": "b90b8f347d38484ebb77f10e4933e92e",
-			"remote": true
-		},
-		{
-			"binding": "KV_CONTAINER_INSTANCES",
-			"id": "e9521d99da014aa3aaac4a35b80b9583",
-			"remote": true
 		}
 	]
 }
-// NOTE: Secrets (GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, WORKER_API_KEY, etc.) 
-// must be set via `wrangler secret put` command for both dev and production:
-//
-// wrangler secret put GMAIL_CLIENT_ID
-// wrangler secret put GMAIL_CLIENT_SECRET
-// wrangler secret put WORKER_API_KEY
-// wrangler secret put GEMINI_API_KEY
-// wrangler secret put OPENAI_API_KEY
-// wrangler secret put GITHUB_TOKEN
-// wrangler secret put CLOUDFLARE_AI_GATEWAY_TOKEN
-// wrangler secret put CLOUDFLARE_BROWSER_RENDER_TOKEN
-// wrangler secret put GMAIL_REFRESH_TOKEN
-//
-// KV Namespaces:
-// npx wrangler kv:namespace create KV_AUDIT_LOGS
-//
-// kv_namespaces = [
-//   { binding = "KV_AUDIT_LOGS", id = "TODO_FILL_IN_ID", preview_id = "TODO_FILL_IN_PREVIEW_ID" }
-// ]
-//
-// For production:
-// wrangler secret put --env production GMAIL_CLIENT_ID
-// ... etc
