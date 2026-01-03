@@ -8,11 +8,13 @@
 	],
 	"workers_dev": true,
 	"upload_source_maps": true,
+/*
 	"assets": {
 		"directory": "./dist/client",
 		"binding": "ASSETS",
 		"not_found_handling": "single-page-application"
 	},
+*/
 	"observability": {
 		"enabled": true,
 		"head_sampling_rate": 1
